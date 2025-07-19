@@ -1,0 +1,12 @@
+HelpPro/
+├── static/
+│   └── css/
+│       └── style.css
+├── templates/
+│   ├── base.html
+│   ├── add_cv.html
+│   ├── view_cv.html
+│   └── edit_cv.html
+├── app.py
+├── models.py
+└── requirements.txt

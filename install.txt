@@ -1,0 +1,14 @@
+flask
+pytesseract 
+pillow 
+pdfplumber 
+fpdf 
+pdf2docx 
+python-docx 
+openpyxl 
+werkzeug
+onnxruntime
+rembg
+Flask-SQLAlchemy
+Flask-WTF
+email-validator

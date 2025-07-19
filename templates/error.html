@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="jumbotron bg-danger text-white">
+    <h1 class="display-4">Error!</h1>
+    <p class="lead">An unexpected error occurred.</p>
+</div>
+<div class="alert alert-danger" role="alert">
+    <h4 class="alert-heading">Error Details:</h4>
+    <p><strong>Type:</strong> {{ error_type }}</p>
+    <p><strong>Message:</strong> {{ error_message }}</p>
+    {% if traceback %}
+    <hr>
+    <p class="mb-0"><strong>Traceback:</strong></p>
+    <pre class="text-white bg-dark p-3 rounded">{{ traceback }}</pre>
+    {% endif %}
+</div>
+<p class="mt-4">
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Home</a>
+</p>
+{% endblock %}

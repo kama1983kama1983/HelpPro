@@ -1,0 +1,17 @@
+.card {
+    height: 100%;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.btn-group {
+    margin-top: auto;
+}
+
+form {
+    max-width: 800px;
+    margin: 0 auto;
+}

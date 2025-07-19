@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Image Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #canvasContainer {
+            max-height: calc(100vh - 16rem);
+        }
+        .controls {
+            height: 36px;
+        }
+        .slider-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 9999px;
+            background-color: #3B82F6;
+            cursor: pointer;
+        }
+        .slider-track {
+            height: 4px;
+            background-color: #BFDBFE;
+            position: relative;
+            top: 8px;
+        }
+        .slider-container {
+            position: relative;
+            height: 24px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6 text-blue-400">Advanced Image Editor</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <!-- Left sidebar -->
+            <div class="md:col-span-1 bg-gray-800 p-4 rounded-lg shadow-md space-y-4">
+                <h2 class="text-xl font-semibold mb-4">Tools</h2>
+                
+                <!-- File Upload -->
+                <form id="uploadForm" enctype="multipart/form-data" class="mb-6">
+                    <label class="block text-sm font-medium mb-2">Upload Image</label>
+                    <input type="file" name="file" accept="image/*" required 
+                           class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </form>
+
+                <!-- Image Processing Controls -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Rotate (°)</label>
+                        <input type="range" id="rotateRange" min="0" max="360" value="0"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Zoom (%)</label>
+                        <input type="range" id="zoomRange" min="50" max="200" value="100"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Brightness</label>
+                        <input type="range" id="brightnessRange" min="-100" max="100" value="0"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Contrast</label>
+                        <input type="range" id="contrastRange" min="-100" max="100" value="0"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Sharpen</label>
+                        <input type="range" id="sharpenRange" min="0" max="5" step="0.1" value="0"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Background Removal</label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="bgRemoveToggle" class="sr-only peer">
+                            <div class="relative w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border border-gray-500"></div>
+                        </label>
+                    </div>
+                    
+                    <!-- Watermark Controls -->
+                    <div class="mt-6 pt-4 border-t border-gray-700">
+                        <h3 class="font-medium mb-3">Watermark</h3>
+                        
+                        <div class="mb-3">
+                            <input type="text" id="watermarkText" placeholder="Enter watermark text"
+                                   class="w-full bg-gray-700 text-white rounded px-3 py-2 focus:outline-none">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs mb-1">Size</label>
+                                <select id="watermarkSize" class="w-full bg-gray-700 text-white rounded px-2 py-1">
+                                    <option value="16">Small</option>
+                                    <option value="24" selected>Medium</option>
+                                    <option value="36">Large</option>
+                                    <option value="48">X-Large</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs mb-1">Opacity</label>
+                                <input type="range" id="watermarkOpacity" min="0" max="1" step="0.1" value="0.5"
+                                       class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs mb-1">Color</label>
+                                <input type="color" id="watermarkColor" value="#ffffff"
+                                       class="w-full h-8 rounded cursor-pointer">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs mb-1">Rotation</label>
+                                <input type="number" id="watermarkRotation" value="0" min="0" max="360"
+                                       class="w-full bg-gray-700 text-white rounded px-2 py-1 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="block text-xs mb-1">Position</label>
+                            <select id="watermarkPosition" class="w-full bg-gray-700 text-white rounded px-2 py-1">
+                                <option value="top-left">Top Left</option>
+                                <option value="top-center">Top Center</option>
+                                <option value="top-right">Top Right</option>
+                                <option value="center">Center</option>
+                                <option value="bottom-left">Bottom Left</option>
+                                <option value="bottom-center">Bottom Center</option>
+                                <option value="bottom-right" selected>Bottom Right</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <button id="applyWatermarkBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-sm">
+                                Apply Watermark
+                            </button>
+                            <button id="removeWatermarkBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-1 rounded text-sm">
+                                Remove Watermark
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Action buttons -->
+                    <div class="mt-6 pt-4 border-t border-gray-700">
+                        <div class="flex flex-col space-y-3">
+                            <button id="saveBtn" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded">
+                                Save Changes
+                            </button>
+                            <button id="resetBtn" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Image preview area -->
+            <div class="md:col-span-3 bg-gray-800 p-4 rounded-lg shadow-md" style="min-height: 500px;">
+                <div id="canvasContainer" class="w-full h-full flex items-center justify-center">
+                    <img id="previewImage" 
+                         src="{{ url_for('static', filename='placeholder.png') }}" 
+                         onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAH0CAYAAADL1t+KAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAM3RFWHRDb21tZW50AHhyOmQ6REFGMEp5WXBnWFE6MyxqOjQ4MDg1NDQxNTg4LHQ6MjMwNTI3MDOF4yZ9AAAD9GlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLwA8eDp4bXBtZXRhIHhtbG5zOng9J2Fkb2JlOm5zOm1ldGEvJz4KICAgICAgICA8cmRmOlJERiB4bWxuczpyZGY9J2h0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMnPgoKICAgICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0nJwogICAgICAgIHhtbG5zOmRjPSdodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyc+CiAgICAgICAgPGRjOnRpdGxlPgogICAgICAgIDxyZGY6QWx0PgogICAgICAgIDxyZGY6bGkgeG1sOmxhbmc9J3gtZGVmYXVsdCc+UGxhY2Vob2xkZXIgSW1hZ2U8L3JkZjpsaT4KICAgICAgICA8L3JkZjpBbHQ+CiAgICAgICAgPC9kYzp0aXRsZT4KICAgICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KCiAgICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9JycKICAgICAgICB4bWxuczpBdHRyaWI9J2h0dHA6Ly9ucy5hdHRyaWJ1dGlvbi5jb20vYWRzLzEuMC8nPgogICAgICAgIDxBdHRyaWI6QWRzPgogICAgICAgIDxyZGY6U2VxPgogICAgICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0nUmVzb3VyY2UnPgogICAgICAgIDxBdHRyaWI6Q3JlYXRlZD4yMDIzLTA1LTI3PC9BdHRyaWI6Q3JlYXRlZD4KICAgICAgICA8QXR0cmliOkV4dElkPmRhZjBqeXlwZ3hxPC9BdHRyaWI6RXh0SWQ+CiAgICAgICAgPEF0dHJpYjpGYklkPjUyNTI2NTkxNDE3OTU4MDwvQXR0cmliOkZiSWQ+CiAgICAgICAgPEF0dHJpYjpUb3VjaFR5cGU+MjwvQXR0cmliOlRvdWNoVHlwZT4KICAgICAgICA8L3JkZjpsaT4KICAgICAgICA8L3JkZjpTZXE+CiAgICAgICAgPC9BdHRyaWI6QWRzPgogICAgICAgIDwvcmRmOkRlc2NyaXB0aW9uPgoKICAgICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0nJwogICAgICAgIHhtbG5zOnBkZj0naHR0cDovL25zLmFkb2JlLmNvbS9wZGYvMS4zLyc+CiAgICAgICAgPHBkZjpBdXRob3I+UGxhY2Vob2xkZXI8L3BkZjpBdXRob3I+CiAgICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CgogICAgICAgIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgICAgICAgeG1sbnM6eG1wPSdodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvJz4KICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkNhbnZhPC94bXA6Q3JlYXRvclRvb2w+CiAgICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgICAgICAgPC9yZGY6UkRGPgogICAgICAgIDwveDp4bXBtZXRhPgogICAgICAgIA==' "
+                         alt="Preview" 
+                         class="max-w-full max-h-full object-contain">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = uploadForm.querySelector('input[type="file"]');
+        const previewImage = document.getElementById('previewImage');
+
+        fileInput.addEventListener('change', async (e) => {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/upload_image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+                
+                const result = await response.json();
+                currentFilename = result.filename;
+                previewImage.src = `{{ url_for('static', filename='uploads/') }}${result.filename}?t=${new Date().getTime()}`;
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to upload image: ' + error.message);
+            }
+        });
+
+        const rotateRange = document.getElementById('rotateRange');
+        const zoomRange = document.getElementById('zoomRange');
+        const brightnessRange = document.getElementById('brightnessRange');
+        const contrastRange = document.getElementById('contrastRange');
+        const sharpenRange = document.getElementById('sharpenRange');
+        const bgRemoveToggle = document.getElementById('bgRemoveToggle');
+        const saveBtn = document.getElementById('saveBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const applyWatermarkBtn = document.getElementById('applyWatermarkBtn');
+        const removeWatermarkBtn = document.getElementById('removeWatermarkBtn');
+        const watermarkText = document.getElementById('watermarkText');
+        const watermarkSize = document.getElementById('watermarkSize');
+        const watermarkColor = document.getElementById('watermarkColor');
+        const watermarkOpacity = document.getElementById('watermarkOpacity');
+        const watermarkRotation = document.getElementById('watermarkRotation');
+        const watermarkPosition = document.getElementById('watermarkPosition');
+
+        let currentFilename = '';
+        let isProcessing = false;
+
+        
+
+        // Update the updateImage function to send all parameters to the backend
+        async function updateImage(params = {}) {
+            if (!currentFilename) {
+                console.warn('No image selected');
+                return;
+            }
+            
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('filename', currentFilename);
+                formData.append('rotate', params.rotate !== undefined ? parseInt(params.rotate) : parseInt(rotateRange.value));
+                formData.append('zoom', params.zoom !== undefined ? parseFloat(params.zoom) : (parseFloat(zoomRange.value) / 100));
+                formData.append('brightness', params.brightness !== undefined ? params.brightness : brightnessRange.value);
+                formData.append('contrast', params.contrast !== undefined ? params.contrast : contrastRange.value);
+                formData.append('sharpen', params.sharpen !== undefined ? params.sharpen : sharpenRange.value);
+                formData.append('remove_bg', params.remove_bg !== undefined ? params.remove_bg : bgRemoveToggle.checked);
+                
+                // Watermark parameters
+                formData.append('watermark_text', params.watermark_text !== undefined ? params.watermark_text : watermarkText.value);
+                formData.append('watermark_position', params.watermark_position !== undefined ? params.watermark_position : watermarkPosition.value);
+                formData.append('watermark_size', params.watermark_size !== undefined ? params.watermark_size : watermarkSize.value);
+                formData.append('watermark_color', params.watermark_color !== undefined ? params.watermark_color : watermarkColor.value);
+                formData.append('watermark_rotation', params.watermark_rotation !== undefined ? params.watermark_rotation : watermarkRotation.value);
+                formData.append('watermark_opacity', params.watermark_opacity !== undefined ? params.watermark_opacity : watermarkOpacity.value);
+
+                const response = await fetch('/process_image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Image processing failed');
+                }
+                
+                const result = await response.json();
+                previewImage.src = `{{ url_for('static', filename='uploads/') }}${result.filename}?t=${new Date().getTime()}`;
+                currentFilename = result.filename; // Update currentFilename to the processed one
+            } catch (error) {
+                console.error('Processing error:', error);
+                alert(`Failed to process image: ${error.message}`);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        // Update save button functionality
+        saveBtn.addEventListener('click', async () => {
+            if (!currentFilename) {
+                alert('No image to save');
+                return;
+            }
+            try {
+                const response = await fetch(`/download_image/${currentFilename}`);
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = currentFilename.replace('processed_', '');
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save image: ' + error.message);
+            }
+        });
+
+        // Debounce function and event listeners remain the same
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Add event listeners for all sliders
+        rotateRange.addEventListener('input', debounce(() => {
+            updateImage({ rotate: rotateRange.value });
+        }, 300));
+    
+        // Update the zoom range event listener
+        zoomRange.addEventListener('input', debounce(() => {
+            const zoomValue = parseFloat(zoomRange.value) / 100;
+            updateImage({ zoom: zoomValue });
+        }, 300));
+    
+        brightnessRange.addEventListener('input', debounce(() => {
+            updateImage({ brightness: brightnessRange.value });
+        }, 300));
+    
+        contrastRange.addEventListener('input', debounce(() => {
+            updateImage({ contrast: contrastRange.value });
+        }, 300));
+    
+        sharpenRange.addEventListener('input', debounce(() => {
+            updateImage({ sharpen: sharpenRange.value });
+        }, 300));
+    
+        bgRemoveToggle.addEventListener('change', () => {
+            updateImage({ remove_bg: bgRemoveToggle.checked });
+        });
+
+        // Add watermark control event listeners
+        watermarkOpacity.addEventListener('input', debounce(() => {
+            if (watermarkText.value.trim()) {
+                updateImage();
+            }
+        }, 300));
+
+        watermarkRotation.addEventListener('input', debounce(() => {
+            if (watermarkText.value.trim()) {
+                updateImage();
+            }
+        }, 300));
+
+        watermarkSize.addEventListener('change', () => {
+            if (watermarkText.value.trim()) {
+                updateImage();
+            }
+        });
+
+        watermarkPosition.addEventListener('change', () => {
+            if (watermarkText.value.trim()) {
+                updateImage();
+            }
+        });
+
+        watermarkColor.addEventListener('input', debounce(() => {
+            if (watermarkText.value.trim()) {
+                updateImage();
+            }
+        }, 300));
+
+        // Add watermark button event listeners
+        applyWatermarkBtn.addEventListener('click', () => {
+            if (!watermarkText.value.trim()) {
+                alert('Please enter watermark text');
+                return;
+            }
+            updateImage({
+                watermark_text: watermarkText.value,
+                watermark_position: watermarkPosition.value,
+                watermark_size: watermarkSize.value,
+                watermark_color: watermarkColor.value,
+                watermark_rotation: watermarkRotation.value,
+                watermark_opacity: watermarkOpacity.value
+            });
+        });
+
+        removeWatermarkBtn.addEventListener('click', () => {
+            watermarkText.value = '';
+            updateImage({
+                watermark_text: '',
+                watermark_position: watermarkPosition.value,
+                watermark_size: watermarkSize.value,
+                watermark_color: watermarkColor.value,
+                watermark_rotation: watermarkRotation.value,
+                watermark_opacity: watermarkOpacity.value
+            });
+        });
+
+        // Add save button event listener
+        saveBtn.addEventListener('click', async () => {
+            if (!currentFilename) {
+                alert('No image to save');
+                return;
+            }
+            try {
+                // Get the current processed image filename
+                const processedFilename = currentFilename.startsWith('processed_') ? 
+                    currentFilename : 
+                    `processed_${currentFilename}`;
+                
+                const response = await fetch(`/download_image/${processedFilename}`);
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Remove the 'processed_' prefix from the download filename
+                a.download = currentFilename.replace('processed_', '');
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save image: ' + error.message);
+            }
+        });
+
+        // Add reset button event listener
+        resetBtn.addEventListener('click', () => {
+            rotateRange.value = 0;
+            zoomRange.value = 100;
+            brightnessRange.value = 0;
+            contrastRange.value = 0;
+            sharpenRange.value = 0;
+            bgRemoveToggle.checked = false;
+            watermarkText.value = '';
+            watermarkSize.value = '24';
+            watermarkColor.value = '#ffffff';
+            watermarkRotation.value = '0';
+            watermarkOpacity.value = '0.5';
+            watermarkPosition.value = 'bottom-right';
+            
+            if (currentFilename) {
+                // Fetch the original image by sending no processing parameters
+                updateImage({
+                    rotate: 0,
+                    zoom: 1.0,
+                    brightness: 0,
+                    contrast: 0,
+                    sharpen: 0,
+                    remove_bg: false,
+                    watermark_text: '',
+                    watermark_position: 'bottom-right',
+                    watermark_size: 24,
+                    watermark_color: '#ffffff',
+                    watermark_rotation: 0,
+                    watermark_opacity: 0.5
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+        

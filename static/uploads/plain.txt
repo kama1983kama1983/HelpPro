@@ -1,0 +1,16 @@
+cv_maker/
+├── backend/
+│   ├── main.go
+│   ├── handlers/
+│   │   └── cv_handler.go
+│   └── models/
+│       └── cv.go
+└── frontend/
+    ├── src/
+    │   ├── pages/
+    │   │   └── index.astro
+    │   ├── components/
+    │   │   └── CVForm.astro
+    │   └── layouts/
+    │       └── Layout.astro
+    └── package.json

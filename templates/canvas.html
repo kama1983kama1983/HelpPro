@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric.js Canvas Editor with Draggable Layers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        #layers-list li.dragging {
+            opacity: 0.5;
+            background-color: #e2e8f0;
+        }
+        .layer-handle {
+            cursor: move;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation Bar -->
+ <nav class="bg-indigo-700 shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <!-- Logo/Brand -->
+                <div class="flex items-center space-x-2">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="text-white font-bold text-xl">FileConverter Pro</span>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="hidden md:flex space-x-8">
+                 <a href="/" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Home</a>                 
+                 <a href="/img_editor" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Image Edior</a>
+            <a href="/canvas" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">canvas</a>
+            <a href="/pdfimg" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Pdf Tools</a>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button class="text-white focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu (hidden by default) -->
+        <div class="md:hidden hidden bg-indigo-800 px-4 py-2">
+            <a href="/" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Home</a>
+                             <a href="/img_editor" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Image Edior</a>
+
+            <a href="/canvas" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">canvas</a>
+            <a href="/pdfimg" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Pdfimg</a>
+        </div>
+    </nav>
+
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Canvas Editor with Draggable Layers</h1>
+        
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Canvas Container -->
+            <div class="lg:w-3/4 bg-white rounded-lg shadow-md p-4">
+                <canvas id="canvas" width="800" height="600" class="border border-gray-300 w-full"></canvas>
+            </div>
+            
+            <!-- Controls Panel -->
+            <div class="lg:w-1/4 bg-white rounded-lg shadow-md p-4 overflow-y-auto max-h-[90vh]">
+                <!-- Add Objects Section -->
+                <div class="mb-6 pb-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Add Objects</h3>
+                    <div class="space-y-2">
+                        <button id="add-text" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded transition">
+                            Add Text
+                        </button>
+                        <button id="add-rect" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded transition">
+                            Add Rectangle
+                        </button>
+                        <button id="add-circle" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded transition">
+                            Add Circle
+                        </button>
+                        <button id="add-image" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded transition">
+                            Add Image
+                        </button>
+                        <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    </div>
+                </div>
+
+                <!-- Text Controls (Hidden by default) -->
+                <div id="text-controls" class="mb-6 pb-4 border-b border-gray-200 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Text Controls</h3>
+                    <div class="space-y-3">
+                        <input type="text" id="text-content" placeholder="Enter text" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select id="font-family" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Arial">Arial</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                        </select>
+                        <input type="number" id="font-size" min="8" max="120" value="24" placeholder="Font size" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="color" id="text-color" value="#000000" 
+                               class="w-full h-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="grid grid-cols-3 gap-2">
+                            <button id="bold-text" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition">
+                                Bold
+                            </button>
+                            <button id="italic-text" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition">
+                                Italic
+                            </button>
+                            <button id="underline-text" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition">
+                                Underline
+                            </button>
+                        </div>
+                        <select id="text-align" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="left">Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                            <option value="justify">Justify</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Object Controls (Hidden by default) -->
+                <div id="object-controls" class="mb-6 pb-4 border-b border-gray-200 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Object Controls</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Fill Color</label>
+                            <input type="color" id="fill-color" value="#ffffff" 
+                                   class="w-full h-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stroke Color</label>
+                            <input type="color" id="stroke-color" value="#000000" 
+                                   class="w-full h-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stroke Width</label>
+                            <input type="number" id="stroke-width" min="1" max="20" value="1" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Opacity</label>
+                            <input type="number" id="object-opacity" min="0" max="1" step="0.1" value="1" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Rotation Angle</label>
+                            <input type="number" id="object-angle" min="0" max="360" placeholder="0" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="bring-forward" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition text-sm">
+                                Forward
+                            </button>
+                            <button id="send-backward" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition text-sm">
+                                Backward
+                            </button>
+                            <button id="bring-to-front" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition text-sm">
+                                To Front
+                            </button>
+                            <button id="send-to-back" class="bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded transition text-sm">
+                                To Back
+                            </button>
+                        </div>
+                        <button id="crop-image" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition hidden">
+                            Crop Image
+                        </button>
+                        <button id="delete-object" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition">
+                            Delete Object
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Crop Controls (Hidden by default) -->
+                <div id="crop-controls" class="mb-6 pb-4 border-b border-gray-200 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Crop Controls</h3>
+                    <div class="space-y-3">
+                        <button id="apply-crop" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
+                            Apply Crop
+                        </button>
+                        <button id="cancel-crop" class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Cancel Crop
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Layers Section -->
+                <div class="mb-6 pb-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Layers</h3>
+                    <ul id="layers-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+                </div>
+
+                <!-- Canvas Controls -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Canvas</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Background Color</label>
+                            <input type="color" id="canvas-color" value="#ffffff" 
+                                   class="w-full h-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <button id="clear-canvas" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded transition">
+                            Clear Canvas
+                        </button>
+                        <button id="save-canvas" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
+                            Save as Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize canvas
+        const canvas = new fabric.Canvas('canvas', {
+            backgroundColor: '#ffffff',
+            preserveObjectStacking: true
+        });
+
+        // Global variables
+        let activeObject = null;
+        let draggedLayer = null;
+        let draggedLayerIndex = -1;
+        let isCropping = false;
+        let cropRect = null;
+        let originalImage = null; // To store the original image data for reset
+
+        // Mobile menu toggle
+        /*document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });*/
+
+        // Event listeners for adding objects
+        document.getElementById('add-text').addEventListener('click', () => {
+            const text = new fabric.Textbox('Double click to edit', {
+                left: 100,
+                top: 100,
+                width: 200,
+                fontSize: 24,
+                fontFamily: 'Arial',
+                fill: '#000000',
+                editable: true
+            });
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            updateControls();
+            updateLayersList();
+        });
+
+        document.getElementById('add-rect').addEventListener('click', () => {
+            const rect = new fabric.Rect({
+                left: 100,
+                top: 100,
+                width: 100,
+                height: 100,
+                fill: '#ffffff',
+                stroke: '#000000',
+                strokeWidth: 1
+            });
+            canvas.add(rect);
+            canvas.setActiveObject(rect);
+            updateControls();
+            updateLayersList();
+        });
+
+        document.getElementById('add-circle').addEventListener('click', () => {
+            const circle = new fabric.Circle({
+                left: 100,
+                top: 100,
+                radius: 50,
+                fill: '#ffffff',
+                stroke: '#000000',
+                strokeWidth: 1
+            });
+            canvas.add(circle);
+            canvas.setActiveObject(circle);
+            updateControls();
+            updateLayersList();
+        });
+
+        document.getElementById('add-image').addEventListener('click', () => {
+            document.getElementById('image-upload').click();
+        });
+
+        document.getElementById('image-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(f) {
+                fabric.Image.fromURL(f.target.result, function(img) {
+                    img.set({
+                        left: 100,
+                        top: 100,
+                        scaleX: 0.5,
+                        scaleY: 0.5
+                    });
+                    canvas.add(img);
+                    canvas.setActiveObject(img);
+                    updateControls();
+                    updateLayersList();
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Crop Image functionality
+        document.getElementById('crop-image').addEventListener('click', () => {
+            if (!activeObject || activeObject.type !== 'image') return;
+
+            isCropping = true;
+            originalImage = activeObject; // Store the original image
+
+            // Disable image selection and interaction
+            activeObject.set({
+                selectable: false,
+                evented: false
+            });
+
+            // Create a crop rectangle over the image
+            cropRect = new fabric.Rect({
+                left: activeObject.left,
+                top: activeObject.top,
+                width: activeObject.getScaledWidth(),
+                height: activeObject.getScaledHeight(),
+                fill: 'rgba(0,0,0,0.3)',
+                stroke: '#fff',
+                strokeWidth: 2,
+                cornerColor: '#fff',
+                cornerSize: 10,
+                transparentCorners: false,
+                hasRotatingPoint: false,
+                borderColor: '#fff',
+                borderScaleFactor: 2,
+                lockRotation: true,
+                padding: 0
+            });
+
+            canvas.add(cropRect);
+            canvas.setActiveObject(cropRect);
+            canvas.renderAll();
+
+            // Hide object controls, show crop controls
+            document.getElementById('object-controls').classList.add('hidden');
+            document.getElementById('crop-controls').classList.remove('hidden');
+        });
+
+        document.getElementById('apply-crop').addEventListener('click', () => {
+            if (!activeObject || activeObject.type !== 'rect' || !isCropping) return;
+
+            const image = originalImage;
+            const crop = activeObject; // The crop rectangle
+
+            // Calculate crop region relative to the original image's unscaled dimensions
+            const scaleX = image.scaleX;
+            const scaleY = image.scaleY;
+
+            const left = (crop.left - image.left) / scaleX;
+            const top = (crop.top - image.top) / scaleY;
+            const width = crop.width / scaleX;
+            const height = crop.height / scaleY;
+
+            // Ensure crop values are within image bounds
+            const imgWidth = image.width;
+            const imgHeight = image.height;
+
+            const cropLeft = Math.max(0, left);
+            const cropTop = Math.max(0, top);
+            const cropWidth = Math.min(imgWidth - cropLeft, width);
+            const cropHeight = Math.min(imgHeight - cropTop, height);
+
+            // Apply cropping
+            image.setSrc(image.getSrc(), () => {
+                image.set({
+                    clipX: cropLeft,
+                    clipY: cropTop,
+                    width: cropWidth,
+                    height: cropHeight,
+                    scaleX: scaleX, // Maintain original scale
+                    scaleY: scaleY, // Maintain original scale
+                    left: crop.left, // Position image at crop rect's position
+                    top: crop.top
+                });
+                canvas.remove(crop);
+                canvas.setActiveObject(image);
+                image.set({
+                    selectable: true,
+                    evented: true
+                });
+                canvas.renderAll();
+                resetCropState();
+            }, {
+                crossOrigin: 'anonymous' // Important for images loaded from external sources
+            });
+        });
+
+        document.getElementById('cancel-crop').addEventListener('click', () => {
+            if (originalImage) {
+                originalImage.set({
+                    selectable: true,
+                    evented: true
+                });
+                canvas.setActiveObject(originalImage);
+            }
+            canvas.remove(cropRect);
+            canvas.renderAll();
+            resetCropState();
+        });
+
+        function resetCropState() {
+            isCropping = false;
+            cropRect = null;
+            originalImage = null;
+            document.getElementById('object-controls').classList.remove('hidden');
+            document.getElementById('crop-controls').classList.add('hidden');
+            updateControls(); // Re-evaluate controls visibility
+        }
+
+        // Canvas events
+        canvas.on('selection:created', function() {
+            activeObject = canvas.getActiveObject();
+            updateControls();
+            updateLayersList();
+        });
+
+        canvas.on('selection:updated', function() {
+            activeObject = canvas.getActiveObject();
+            updateControls();
+            updateLayersList();
+        });
+
+        canvas.on('selection:cleared', function() {
+            activeObject = null;
+            updateControls();
+            updateLayersList();
+        });
+
+        canvas.on('object:modified', function() {
+            updateLayersList();
+        });
+
+        canvas.on('object:moved', function() {
+            updateLayersList();
+        });
+
+        // Update controls based on selected object
+        function updateControls() {
+            const textControls = document.getElementById('text-controls');
+            const objectControls = document.getElementById('object-controls');
+            const cropImageButton = document.getElementById('crop-image');
+            
+            // Hide all controls initially
+            textControls.classList.add('hidden');
+            objectControls.classList.add('hidden');
+            cropImageButton.classList.add('hidden');
+            document.getElementById('crop-controls').classList.add('hidden');
+
+            if (activeObject) {
+                objectControls.classList.remove('hidden');
+                
+                // Update common object controls
+                document.getElementById('fill-color').value = activeObject.fill || '#ffffff';
+                document.getElementById('stroke-color').value = activeObject.stroke || '#000000';
+                document.getElementById('stroke-width').value = activeObject.strokeWidth || 1;
+                document.getElementById('object-opacity').value = activeObject.opacity || 1;
+                document.getElementById('object-angle').value = activeObject.angle || 0;
+                
+                // Text-specific controls
+                if (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text') {
+                    textControls.classList.remove('hidden');
+                    document.getElementById('text-content').value = activeObject.text;
+                    document.getElementById('font-family').value = activeObject.fontFamily || 'Arial';
+                    document.getElementById('font-size').value = activeObject.fontSize || 24;
+                    document.getElementById('text-color').value = activeObject.fill || '#000000';
+                    document.getElementById('text-align').value = activeObject.textAlign || 'left';
+                } else if (activeObject.type === 'image' && !isCropping) {
+                    cropImageButton.classList.remove('hidden');
+                }
+            } 
+            // If cropping, only show crop controls
+            if (isCropping) {
+                objectControls.classList.add('hidden');
+                textControls.classList.add('hidden');
+                cropImageButton.classList.add('hidden');
+                document.getElementById('crop-controls').classList.remove('hidden');
+            }
+        }
+
+        // Update layers list with draggable functionality
+        function updateLayersList() {
+            const layersList = document.getElementById('layers-list');
+            layersList.innerHTML = '';
+            
+            const objects = canvas.getObjects();
+            
+            objects.forEach((obj, index) => {
+                // Skip cropRect from layers list
+                if (obj === cropRect) return;
+
+                const li = document.createElement('li');
+                li.dataset.index = index;
+                li.className = `flex items-center justify-between p-2 rounded ${activeObject && obj === activeObject ? 'bg-indigo-100 border-l-4 border-indigo-500' : 'bg-gray-50 hover:bg-gray-100 border-l-4 border-gray-200'}`;
+                li.draggable = true;
+                
+                // Create visibility toggle
+                const visibilityBtn = document.createElement('button');
+                visibilityBtn.className = 'p-1 rounded hover:bg-gray-200';
+                visibilityBtn.innerHTML = obj.visible ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+                visibilityBtn.title = obj.visible ? 'Hide layer' : 'Show layer';
+                visibilityBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    obj.set('visible', !obj.visible);
+                    canvas.renderAll();
+                    updateLayersList();
+                });
+                
+                // Create layer text
+                const layerText = document.createElement('span');
+                layerText.className = 'text-sm truncate flex-grow mx-2';
+                layerText.textContent = `${obj.type.charAt(0).toUpperCase() + obj.type.slice(1)} ${index + 1}`;
+                
+                // Create drag handle
+                const dragHandle = document.createElement('span');
+                dragHandle.className = 'layer-handle p-1 text-gray-500 hover:text-gray-700';
+                dragHandle.innerHTML = '☰';
+                dragHandle.title = 'Drag to reorder';
+                
+                li.appendChild(visibilityBtn);
+                li.appendChild(layerText);
+                li.appendChild(dragHandle);
+                
+                li.addEventListener('click', () => {
+                    canvas.setActiveObject(obj);
+                    activeObject = obj;
+                    updateControls();
+                    updateLayersList();
+                });
+                
+                // Drag and drop functionality
+                li.addEventListener('dragstart', (e) => {
+                    draggedLayer = obj;
+                    draggedLayerIndex = index;
+                    li.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', index);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                
+                li.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    
+                    const targetLi = e.target.closest('li');
+                    if (!targetLi || targetLi === li) return;
+                    
+                    const rect = targetLi.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        layersList.insertBefore(li, targetLi);
+                    } else {
+                        layersList.insertBefore(li, targetLi.nextSibling);
+                    }
+                });
+                
+                li.addEventListener('dragend', () => {
+                    li.classList.remove('dragging');
+                    const newIndex = Array.from(layersList.children).indexOf(li);
+                    
+                    if (newIndex !== draggedLayerIndex && newIndex >= 0) {
+                        canvas.moveTo(draggedLayer, objects.length - newIndex - 1);
+                        canvas.renderAll();
+                        updateLayersList();
+                    }
+                });
+                
+                li.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                });
+                
+                li.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                });
+                
+                layersList.appendChild(li);
+            });
+        }
+
+        // Text controls
+        document.getElementById('text-content').addEventListener('input', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('text', this.value);
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('font-family').addEventListener('change', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('fontFamily', this.value);
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('font-size').addEventListener('input', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('fontSize', parseInt(this.value));
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('text-color').addEventListener('input', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('fill', this.value);
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('bold-text').addEventListener('click', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold');
+                canvas.renderAll();
+                updateControls();
+            }
+        });
+
+        document.getElementById('italic-text').addEventListener('click', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic');
+                canvas.renderAll();
+                updateControls();
+            }
+        });
+
+        document.getElementById('underline-text').addEventListener('click', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('underline', !activeObject.underline);
+                canvas.renderAll();
+                updateControls();
+            }
+        });
+
+        document.getElementById('text-align').addEventListener('change', function() {
+            if (activeObject && (activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text')) {
+                activeObject.set('textAlign', this.value);
+                canvas.renderAll();
+            }
+        });
+
+        // Object controls
+        document.getElementById('fill-color').addEventListener('input', function() {
+            if (activeObject) {
+                activeObject.set('fill', this.value);
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('stroke-color').addEventListener('input', function() {
+            if (activeObject) {
+                activeObject.set('stroke', this.value);
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('stroke-width').addEventListener('input', function() {
+            if (activeObject) {
+                activeObject.set('strokeWidth', parseInt(this.value));
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('object-opacity').addEventListener('input', function() {
+            if (activeObject) {
+                activeObject.set('opacity', parseFloat(this.value));
+                canvas.renderAll();
+            }
+        });
+
+        document.getElementById('object-angle').addEventListener('input', function() {
+            if (activeObject) {
+                activeObject.set('angle', parseInt(this.value));
+                canvas.renderAll();
+            }
+        });
+
+        // Layer ordering
+        document.getElementById('bring-forward').addEventListener('click', function() {
+            if (activeObject) {
+                canvas.bringForward(activeObject);
+                updateLayersList();
+            }
+        });
+
+        document.getElementById('send-backward').addEventListener('click', function() {
+            if (activeObject) {
+                canvas.sendBackwards(activeObject);
+                updateLayersList();
+            }
+        });
+
+        document.getElementById('bring-to-front').addEventListener('click', function() {
+            if (activeObject) {
+                canvas.bringToFront(activeObject);
+                updateLayersList();
+            }
+        });
+
+        document.getElementById('send-to-back').addEventListener('click', function() {
+            if (activeObject) {
+                canvas.sendToBack(activeObject);
+                updateLayersList();
+            }
+        });
+
+        document.getElementById('delete-object').addEventListener('click', function() {
+            if (activeObject) {
+                canvas.remove(activeObject);
+                activeObject = null;
+                updateControls();
+                updateLayersList();
+            }
+        });
+
+        // Canvas controls
+        document.getElementById('canvas-color').addEventListener('input', function() {
+            canvas.setBackgroundColor(this.value, canvas.renderAll.bind(canvas));
+        });
+
+        document.getElementById('clear-canvas').addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear the canvas?')) {
+                canvas.clear();
+                canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+                document.getElementById('canvas-color').value = '#ffffff';
+                activeObject = null;
+                updateControls();
+                updateLayersList();
+            }
+        });
+
+        document.getElementById('save-canvas').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'canvas-image.png';
+            link.href = canvas.toDataURL({
+                format: 'png',
+                quality: 1
+            });
+            link.click();
+        });
+
+        // Initialize
+        updateLayersList();
+    </script>
+</body>
+</html>

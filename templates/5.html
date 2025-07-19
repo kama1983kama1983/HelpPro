@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Advanced Image Editor with Zoom - Tailwind CSS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #cropOverlay {
+      position: absolute;
+      border: 2px dashed #38bdf8; /* Tailwind sky-400 */
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+    }
+    /* Hide default file input's ugly button */
+    input[type="file"]::file-selector-button {
+      background-color: #38bdf8; /* Tailwind sky-400 */
+      color: #1e293b; /* Tailwind slate-800 */
+      border: none;
+      padding: 0.3rem 0.75rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s;
+    }
+    input[type="file"]::file-selector-button:hover {
+      background-color: #0ea5e9; /* Tailwind sky-500 */
+    }
+    /* Custom scrollbar for toolbar overflow */
+    #toolbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    #toolbar::-webkit-scrollbar-thumb {
+      background-color: #38bdf8;
+      border-radius: 4px;
+    }
+    #toolbar::-webkit-scrollbar-track {
+      background-color: #1e293b;
+    }
+    /* Mobile menu toggle */
+    .mobile-menu {
+      display: none;
+    }
+    .mobile-menu.active {
+      display: block;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 flex flex-col h-screen overflow-hidden font-sans">
+  <nav class="bg-indigo-700 shadow-lg">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center py-4">
+        <!-- Logo/Brand -->
+        <div class="flex items-center space-x-2">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <span class="text-white font-bold text-xl">FileConverter Pro</span>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="hidden md:flex space-x-8">
+          <a href="/" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Home</a>                 
+          <a href="/img-editor" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Image Editor</a>
+          <a href="/canvas" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Canvas</a>
+          <a href="/pdfimg" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">PDF Tools</a>
+        </div>
+
+        <!-- Mobile menu button -->
+        <div class="md:hidden">
+          <button id="mobileMenuButton" class="text-white focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Menu (hidden by default) -->
+    <div id="mobileMenu" class="mobile-menu md:hidden bg-indigo-800 px-4 py-2">
+      <a href="/" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Home</a>
+      <a href="/img-editor" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Image Editor</a>
+      <a href="/canvas" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">Canvas</a>
+      <a href="/pdfimg" class="block text-white py-2 hover:bg-indigo-700 rounded px-2">PDF Tools</a>
+    </div>
+  </nav>
+
+  <div class="flex flex-1 overflow-hidden">
+    <div id="toolbar" class="w-80 bg-slate-800 p-6 overflow-y-auto border-r border-slate-700 flex flex-col">
+      <h2 class="text-sky-400 font-semibold text-2xl mb-4">Image Editor</h2>
+
+      <label for="uploadImage" class="block font-medium mb-1">Upload Image</label>
+      <input type="file" id="uploadImage" accept="image/*" class="w-full mb-4" />
+
+      <label for="zoomRange" class="block font-medium mb-1">Zoom (%)</label>
+      <input type="range" id="zoomRange" min="50" max="300" value="100" class="w-full mb-4" />
+
+      <label for="brightnessRange" class="block font-medium mb-1">Brightness</label>
+      <input type="range" id="brightnessRange" min="-100" max="100" value="0" class="w-full mb-4" />
+
+      <label for="contrastRange" class="block font-medium mb-1">Contrast</label>
+      <input type="range" id="contrastRange" min="-100" max="100" value="0" class="w-full mb-4" />
+
+      <label for="sharpenRange" class="block font-medium mb-1">Sharpen</label>
+      <input type="range" id="sharpenRange" min="0" max="5" step="0.1" value="0" class="w-full mb-4" />
+
+      <label for="watermarkText" class="block font-medium mb-1">Add Watermark Text</label>
+      <input type="text" id="watermarkText" placeholder="Enter watermark text" class="w-full rounded-md p-2 mb-1 bg-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      <label for="watermarkOpacity" class="block font-medium mb-1">Watermark Opacity</label>
+      <input type="range" id="watermarkOpacity" min="0" max="1" step="0.05" value="0.3" class="w-full mb-2" />
+      <button id="applyWatermarkBtn" class="w-full bg-sky-400 text-slate-900 font-semibold py-2 rounded hover:bg-sky-500 transition mb-2">Apply Watermark</button>
+      <button id="removeWatermarkBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 rounded transition mb-4">Remove Watermark</button>
+
+      <label class="block font-medium mb-2">Crop Image</label>
+      <button id="startCropBtn" class="w-full bg-sky-400 text-slate-900 font-semibold py-2 rounded hover:bg-sky-500 transition mb-2">Start Crop</button>
+      <button id="applyCropBtn" disabled class="w-full bg-green-600 text-white font-semibold py-2 rounded opacity-50 cursor-not-allowed mb-2 transition">Apply Crop</button>
+      <button id="cancelCropBtn" disabled class="w-full bg-red-600 text-white font-semibold py-2 rounded opacity-50 cursor-not-allowed mb-4 transition">Cancel Crop</button>
+
+      <label class="block font-medium mb-1">Background Removal</label>
+      <label for="bgRemoveTolerance" class="block text-sm mb-1">Tolerance (color similarity)</label>
+      <input type="range" id="bgRemoveTolerance" min="10" max="100" value="40" class="w-full mb-2" />
+      <button id="removeBgBtn" class="w-full bg-sky-400 text-slate-900 font-semibold py-2 rounded hover:bg-sky-500 transition mb-6">Remove Background (simple)</button>
+
+      <button id="resetBtn" class="w-full bg-red-600 text-white font-semibold py-2 rounded hover:bg-red-700 transition mb-2">Reset Image</button>
+      <button id="downloadBtn" class="w-full bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 transition">Download Image</button>
+    </div>
+
+    <div id="canvas-container" class="flex-1 flex items-center justify-center bg-slate-900 relative overflow-auto">
+      <canvas id="imageCanvas" class="border-2 border-sky-400 rounded bg-slate-800"></canvas>
+      <div id="cropOverlay"></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // Mobile menu toggle
+      const mobileMenuButton = document.getElementById('mobileMenuButton');
+      const mobileMenu = document.getElementById('mobileMenu');
+      
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('active');
+      });
+
+      // Image editor functionality
+      const uploadImage = document.getElementById('uploadImage');
+      const imageCanvas = document.getElementById('imageCanvas');
+      const ctx = imageCanvas.getContext('2d');
+      const cropOverlay = document.getElementById('cropOverlay');
+
+      const zoomRange = document.getElementById('zoomRange');
+      const brightnessRange = document.getElementById('brightnessRange');
+      const contrastRange = document.getElementById('contrastRange');
+      const sharpenRange = document.getElementById('sharpenRange');
+
+      const watermarkTextInput = document.getElementById('watermarkText');
+      const watermarkOpacityRange = document.getElementById('watermarkOpacity');
+      const applyWatermarkBtn = document.getElementById('applyWatermarkBtn');
+      const removeWatermarkBtn = document.getElementById('removeWatermarkBtn');
+
+      const startCropBtn = document.getElementById('startCropBtn');
+      const applyCropBtn = document.getElementById('applyCropBtn');
+      const cancelCropBtn = document.getElementById('cancelCropBtn');
+
+      const bgRemoveTolerance = document.getElementById('bgRemoveTolerance');
+      const removeBgBtn = document.getElementById('removeBgBtn');
+
+      const resetBtn = document.getElementById('resetBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+
+      let originalImage = null; // Image object for original upload
+      let baseImageWidth = 0;
+      let baseImageHeight = 0;
+
+      // Current settings
+      let currentBrightness = 0;
+      let currentContrast = 0;
+      let currentSharpen = 0;
+      let currentWatermarkText = '';
+      let currentWatermarkOpacity = 0.3;
+      let watermarkApplied = false;
+
+      // Crop variables
+      let cropping = false;
+      let cropStart = { x: 0, y: 0 };
+      let cropEnd = { x: 0, y: 0 };
+
+      // Current zoom from zoom slider (percent)
+      let currentZoom = 100;
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      // Load image into canvas with original size saved
+      function loadImageToCanvas(img) {
+        baseImageWidth = img.width;
+        baseImageHeight = img.height;
+        currentZoom = 100;
+        zoomRange.value = 100;
+
+        resizeCanvasAndDraw(img, currentZoom);
+      }
+
+      // Resize canvas according to zoom and redraw with filters and watermark
+      function resizeCanvasAndDraw(img, zoomPercent) {
+        const scale = zoomPercent / 100;
+
+        // Set canvas size scaled
+        imageCanvas.width = Math.floor(baseImageWidth * scale);
+        imageCanvas.height = Math.floor(baseImageHeight * scale);
+
+        // Draw the image scaled
+        ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, imageCanvas.width, imageCanvas.height);
+
+        // Save current image data before filters
+        let imgData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+
+        // Apply filters on image data
+        let newImgData = applyBrightnessContrastOnImageData(imgData, currentBrightness, currentContrast);
+        ctx.putImageData(newImgData, 0, 0);
+
+        if(currentSharpen > 0) {
+          sharpenImage(currentSharpen);
+        }
+
+        if (watermarkApplied && currentWatermarkText.trim() !== '') {
+          drawWatermark(currentWatermarkText, currentWatermarkOpacity);
+        }
+      }
+
+      // Apply filters to ImageData and return new ImageData
+      function applyBrightnessContrastOnImageData(imageData, brightness, contrast) {
+        let pixels = imageData.data;
+        const c = contrast;
+        const factor = (259 * (c + 255)) / (255 * (259 - c));
+
+        for (let i = 0; i < pixels.length; i += 4) {
+          pixels[i] = clamp(factor * (pixels[i] - 128) + 128 + brightness, 0, 255);
+          pixels[i + 1] = clamp(factor * (pixels[i + 1] - 128) + 128 + brightness, 0, 255);
+          pixels[i + 2] = clamp(factor * (pixels[i + 2] - 128) + 128 + brightness, 0, 255);
+        }
+        return imageData;
+      }
+
+      // Sharpen function using convolution kernel
+      function sharpenImage(amount) {
+        let weights = [
+          0, -1, 0,
+          -1, 5, -1,
+          0, -1, 0
+        ];
+
+        weights[4] = 1 + amount * 4; // center
+        weights[1] = weights[3] = weights[5] = weights[7] = -amount;
+
+        const imgData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+        const w = imgData.width;
+        const h = imgData.height;
+        const pixels = imgData.data;
+        const tempPixels = new Uint8ClampedArray(pixels);
+
+        function getPixelIndex(x, y) {
+          return (y * w + x) * 4;
+        }
+
+        for(let y = 1; y < h - 1; y++) {
+          for(let x = 1; x < w - 1; x++) {
+            let r=0, g=0, b=0;
+            let idx = 0;
+            for(let ky=-1; ky<=1; ky++) {
+              for(let kx=-1; kx<=1; kx++) {
+                const ix = x + kx;
+                const iy = y + ky;
+                const i = getPixelIndex(ix, iy);
+                const wght = weights[idx++];
+                r += tempPixels[i] * wght;
+                g += tempPixels[i+1] * wght;
+                b += tempPixels[i+2] * wght;
+              }
+            }
+            const i = getPixelIndex(x,y);
+            pixels[i] = clamp(r,0,255);
+            pixels[i+1] = clamp(g,0,255);
+            pixels[i+2] = clamp(b,0,255);
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      // Draw watermark text in bottom right corner
+// Draw watermark text in bottom right corner
+// Draw watermark text with customizable color and opacity
+function drawWatermark(text, opacity) {
+  if (!text) return;
+
+  // Choose watermark color (you can customize this)
+  const watermarkColor = '#ff0000'; // red — change this to any hex or rgba color
+
+  ctx.save();
+  ctx.font = 'bold 36px Arial';
+  ctx.fillStyle = `${watermarkColor}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`;
+  ctx.textBaseline = 'bottom';
+  ctx.textAlign = 'right';
+  const margin = 10;
+  ctx.fillText(text, imageCanvas.width - margin, imageCanvas.height - margin);
+  ctx.restore();
+}
+
+      uploadImage.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // to avoid CORS issues if possible
+        const reader = new FileReader();
+        reader.onload = evt => {
+          img.onload = () => {
+            originalImage = img;
+            resetControls();
+            loadImageToCanvas(img);
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Reset controls and variables
+      function resetControls() {
+        brightnessRange.value = 0;
+        contrastRange.value = 0;
+        sharpenRange.value = 0;
+        watermarkTextInput.value = '';
+        watermarkOpacityRange.value = 0.3;
+        zoomRange.value = 100;
+        currentBrightness = 0;
+        currentContrast = 0;
+        currentSharpen = 0;
+        currentWatermarkText = '';
+        currentWatermarkOpacity = 0.3;
+        watermarkApplied = false;
+        cropping = false;
+        cropOverlay.style.display = 'none';
+        applyCropBtn.disabled = true;
+        cancelCropBtn.disabled = true;
+      }
+
+      // Update image with current controls and zoom
+      function updateImage() {
+        if (!originalImage) return;
+        currentBrightness = parseInt(brightnessRange.value);
+        currentContrast = parseInt(contrastRange.value);
+        currentSharpen = parseFloat(sharpenRange.value);
+        currentWatermarkText = watermarkTextInput.value.trim();
+        currentWatermarkOpacity = parseFloat(watermarkOpacityRange.value);
+        currentZoom = parseInt(zoomRange.value);
+
+        resizeCanvasAndDraw(originalImage, currentZoom);
+
+        if (watermarkApplied && currentWatermarkText !== '') {
+          drawWatermark(currentWatermarkText, currentWatermarkOpacity);
+        }
+      }
+
+      brightnessRange.addEventListener('input', () => {
+        updateImage();
+      });
+      contrastRange.addEventListener('input', () => {
+        updateImage();
+      });
+      sharpenRange.addEventListener('input', () => {
+        updateImage();
+      });
+      zoomRange.addEventListener('input', () => {
+        updateImage();
+      });
+
+      applyWatermarkBtn.addEventListener('click', () => {
+        watermarkApplied = true;
+        updateImage();
+      });
+      removeWatermarkBtn.addEventListener('click', () => {
+        watermarkApplied = false;
+        updateImage();
+      });
+
+      // Crop functionality with zoom compensation
+      function startCrop() {
+        if (!originalImage) return;
+        cropping = false;
+        cropStart = { x: 0, y: 0 };
+        cropEnd = { x: 0, y: 0 };
+        cropOverlay.style.width = '0px';
+        cropOverlay.style.height = '0px';
+        cropOverlay.style.left = '0px';
+        cropOverlay.style.top = '0px';
+        cropOverlay.style.display = 'none';
+        applyCropBtn.disabled = true;
+        cancelCropBtn.disabled = true;
+
+        cropping = true;
+        cropOverlay.style.display = 'block';
+      }
+
+      function updateCropOverlay() {
+        if (!cropping) return;
+        const x = Math.min(cropStart.x, cropEnd.x);
+        const y = Math.min(cropStart.y, cropEnd.y);
+        const width = Math.abs(cropEnd.x - cropStart.x);
+        const height = Math.abs(cropEnd.y - cropStart.y);
+        cropOverlay.style.left = x + 'px';
+        cropOverlay.style.top = y + 'px';
+        cropOverlay.style.width = width + 'px';
+        cropOverlay.style.height = height + 'px';
+      }
+
+      function applyCrop() {
+        if (!cropping) return;
+        cropping = false;
+        cropOverlay.style.display = 'none';
+
+        const scale = currentZoom / 100;
+        const x = Math.min(cropStart.x, cropEnd.x);
+        const y = Math.min(cropStart.y, cropEnd.y);
+        const width = Math.abs(cropEnd.x - cropStart.x);
+        const height = Math.abs(cropEnd.y - cropStart.y);
+
+        if (width < 5 || height < 5) {
+          alert('Please select a larger crop area.');
+          return;
+        }
+
+        // Scale crop back to original image coordinates
+        const sx = Math.floor(x / scale);
+        const sy = Math.floor(y / scale);
+        const sw = Math.floor(width / scale);
+        const sh = Math.floor(height / scale);
+
+        // Create temporary canvas to extract cropped image
+        const tempCanvas = document.createElement('canvas');
+        const tctx = tempCanvas.getContext('2d');
+        tempCanvas.width = sw;
+        tempCanvas.height = sh;
+        tctx.drawImage(originalImage, sx, sy, sw, sh, 0, 0, sw, sh);
+
+        // Update originalImage
+        const croppedImg = new Image();
+        croppedImg.onload = () => {
+          originalImage = croppedImg;
+          baseImageWidth = croppedImg.width;
+          baseImageHeight = croppedImg.height;
+          resetControls();
+          loadImageToCanvas(croppedImg);
+        };
+        croppedImg.src = tempCanvas.toDataURL();
+
+        applyCropBtn.disabled = true;
+        cancelCropBtn.disabled = true;
+        watermarkApplied = false;
+      }
+
+      function cancelCrop() {
+        cropping = false;
+        cropOverlay.style.display = 'none';
+        applyCropBtn.disabled = true;
+        cancelCropBtn.disabled = true;
+        updateImage();
+      }
+
+      imageCanvas.addEventListener('mousedown', e => {
+        if (!cropping) return;
+        const rect = imageCanvas.getBoundingClientRect();
+        cropStart.x = e.clientX - rect.left;
+        cropStart.y = e.clientY - rect.top;
+        cropEnd.x = cropStart.x;
+        cropEnd.y = cropStart.y;
+        updateCropOverlay();
+
+        applyCropBtn.disabled = true;
+        cancelCropBtn.disabled = false;
+
+        function mouseMoveHandler(event) {
+          cropEnd.x = event.clientX - rect.left;
+          cropEnd.y = event.clientY - rect.top;
+          updateCropOverlay();
+          applyCropBtn.disabled = false;
+        }
+
+        function mouseUpHandler() {
+          window.removeEventListener('mousemove', mouseMoveHandler);
+          window.removeEventListener('mouseup', mouseUpHandler);
+        }
+
+        window.addEventListener('mousemove', mouseMoveHandler);
+        window.addEventListener('mouseup', mouseUpHandler);
+      });
+
+      // Background removal (simple naive by color tolerance)
+      function removeBackground() {
+        if (!originalImage) return;
+        // Draw original image on canvas at base resolution
+        imageCanvas.width = baseImageWidth;
+        imageCanvas.height = baseImageHeight;
+        ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+        ctx.drawImage(originalImage, 0, 0);
+
+        let imgData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+        let pixels = imgData.data;
+        const width = imgData.width;
+        const height = imgData.height;
+
+        const rTarget = pixels[0];
+        const gTarget = pixels[1];
+        const bTarget = pixels[2];
+        const tolerance = parseInt(bgRemoveTolerance.value);
+
+        for (let i = 0; i < pixels.length; i += 4) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+          const dist = Math.sqrt(
+            (r - rTarget) * (r - rTarget) +
+            (g - gTarget) * (g - gTarget) +
+            (b - bTarget) * (b - bTarget)
+          );
+
+          if (dist < tolerance) {
+            pixels[i + 3] = 0;
+          }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+
+        // Update originalImage from changed canvas
+        const newImg = new Image();
+        newImg.onload = () => {
+          originalImage = newImg;
+          baseImageWidth = newImg.width;
+          baseImageHeight = newImg.height;
+          zoomRange.value = 100;
+          currentZoom = 100;
+          resetControls();
+          loadImageToCanvas(newImg);
+        };
+        newImg.src = imageCanvas.toDataURL();
+      }
+
+      startCropBtn.addEventListener('click', () => {
+        if (!originalImage) {
+          alert('Please upload an image first.');
+          return;
+        }
+        startCrop();
+        applyCropBtn.disabled = true;
+        cancelCropBtn.disabled = false;
+      });
+      applyCropBtn.addEventListener('click', () => {
+        applyCrop();
+      });
+      cancelCropBtn.addEventListener('click', () => {
+        cancelCrop();
+      });
+
+      removeBgBtn.addEventListener('click', () => {
+        if (!originalImage) {
+          alert('Please upload an image first.');
+          return;
+        }
+        removeBackground();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        if (!originalImage) return;
+        watermarkApplied = false;
+        resetControls();
+        loadImageToCanvas(originalImage);
+      });
+
+      // Download button improved implementation
+      downloadBtn.addEventListener('click', (e) => {
+        if (!originalImage) {
+          alert('Please upload an image first.');
+          return;
+        }
+        const link = document.createElement('a');
+        const dataURL = imageCanvas.toDataURL('image/png');
+        link.href = dataURL;
+        link.download = 'edited-image.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+
+      // Initialize with blank canvas
+      imageCanvas.width = 600;
+      imageCanvas.height = 400;
+      ctx.fillStyle = '#334155'; // slate-700 bg
+      ctx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
+    })();
+  </script>
+</body>
+</html>
